@@ -3,7 +3,9 @@
 namespace App\Utility;
 
 use App\Entity\Message;
-use JMS\Serializer\SerializerBuilder as JMSSerializer;
+use Hateoas\HateoasBuilder;
+//use JMS\Serializer\SerializerBuilder as JMSSerializer;
+use JMS\Serializer\SerializationContext;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 /**
@@ -32,8 +34,13 @@ class Utils
         if (null === $messageBody) {
             $data = null;
         } else {
-            $serializer = JMSSerializer::create()->build();
-            $data = $serializer->serialize($messageBody, $format);
+            //$serializer = JMSSerializer::create()->build();
+            //$data = $serializer->serialize($messageBody, $format);
+            $context = SerializationContext::create()
+                ->setSerializeNull(true)
+                ->setAttribute('json_encode_options', \JSON_UNESCAPED_SLASHES);
+            $hateoas = HateoasBuilder::create()->build();
+            $data = $hateoas->serialize($messageBody, $format, $context);
         }
 
         $response = new Response($data, $code);
@@ -71,6 +78,8 @@ class Utils
 
     /**
      * Generates an Error Response Message
+     *
+     *
      */
     public static function errorMessage(int $statusCode, ?string $customMessage, string $format): Response
     {
@@ -81,6 +90,33 @@ class Utils
         return Utils::apiResponse(
             $customMessage->getCode(),
             $customMessage,
+            $format
+        );
+    }
+
+    /**
+     * Generates an Error Response Message for http forbidden
+     *
+     * @return Response
+     */
+    public static function buildResponseNotFound(string $format,
+                                           string $message = 'Results not found.'): Response {
+        return Utils::errorMessage(  // 404
+            Response::HTTP_NOT_FOUND,
+            $message,
+            $format
+        );
+    }
+
+    /**
+     * Generates an Error Response Message for http not found
+     *
+     * @return Response
+     * */
+    public static function buildResponseForbidden(string $format) : Response {
+        return Utils::errorMessage( // 403
+            Response::HTTP_FORBIDDEN,
+            '`Forbidden`: you don\'t have permission to access',
             $format
         );
     }

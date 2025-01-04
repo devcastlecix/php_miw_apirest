@@ -28,6 +28,8 @@ tags:
     description: 'User login'
   - name: '👥 Users'
     description: 'User management'
+  - name: '🔢 Results'
+    description: 'Result management'
 paths:
   /login_check:
     options:
@@ -230,7 +232,442 @@ paths:
           headers:
             Allow:
               $ref: '#/components/headers/Allow'
-
+  /results:
+    get:
+      tags:
+        - '🔢 Results'
+      summary: "Retrieve a collection of Results."
+      description: |
+        - Returns all Results if the user has ROLE_ADMIN, or only the user's own Results if the user has ROLE_USER.        
+        - Includes an ETag header for cache/conditional requests (304 Not Modified).
+      operationId: api_results_cget
+      parameters:
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+      security:
+        - MiWApiSecurity: []
+      responses:
+        '200':
+          description: 'OK - Returns an array of Results.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results array', type: array, items: { $ref: '#/components/schemas/Result' } }
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '304':
+          $ref: '#/components/responses/304_NotModified_Response_json'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response_json'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_json'
+    post:
+      tags: [ '🔢 Results' ]
+      summary: Creates a Result resource.
+      description: 'Creates a new result. _NOTE: if the user is null, the current user will be used_'
+      operationId: api_results_post
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBodyPost'
+      responses:
+        '201':
+          description: '`Created`: result created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response_json'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response_json'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_Post_Result_json'
+        '422':
+          $ref: '#/components/responses/422_UnprocessableEntity_Response_Result_json'
+    options:
+      tags: [ '🔢 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  /results.{format}:
+    post:
+      tags: [ '🔢 Results' ]
+      summary: Creates a Result resource with format.
+      description: 'Creates a new result. _NOTE: if the user is null, the current user will be used_.Output can be in JSON or XML format.'
+      operationId: api_results_post_format
+      parameters:
+        - $ref: '#/components/parameters/formatParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBodyPost'
+      responses:
+        '201':
+          description: '`Created`: result created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Result'
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <result>
+                  <entry xmlns:atom="http://www.w3.org/2005/Atom" id="1">
+                    <result>111</result>
+                    <time><![CDATA[2025-01-01 10:10:10]]</time>
+                    <user xmlns:atom="http://www.w3.org/2005/Atom" id="1508">
+                      <email>miw.etsisi@upm.es</email>
+                      <roles>
+                        <role>ROLE_USER</role>
+                        <role>ROLE_ADMIN</role>
+                      </roles>
+                      <link rel="parent" href="/api/v1/users"/>
+                      <link rel="self" href="/api/v1/users/1508"/>
+                    </user>
+                    <link rel="parent" href="/api/v1/results"/>
+                    <link rel="self" href="/api/v1/results/1"/>
+                  </entry>
+                </result>
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_Post_Result'
+        '422':
+          $ref: '#/components/responses/422_UnprocessableEntity_Response_Result'
+  /results.{format}/{sort}/{order}:
+    get:
+      tags:
+        - '🔢 Results'
+      summary: "Retrieve a collection of Results with format and sorting."
+      description: |
+        - Returns all Results if the user has ROLE_ADMIN, or only the user's own Results if the user has ROLE_USER.
+        - Allows sorting by `id`, `time`, or `result` in ascending (`asc`) or descending (`desc`) order.
+        - Output can be in JSON or XML format.
+        - Includes an ETag header for cache/conditional requests (304 Not Modified).
+      operationId: api_results_all_cget
+      security:
+        - MiWApiSecurity: []
+      parameters:
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+        - $ref: '#/components/parameters/formatParam'
+        - $ref: '#/components/parameters/sortResultParam'
+        - $ref: '#/components/parameters/orderParam'
+      responses:
+        '200':
+          description: 'OK - Returns an array of Results.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results array', type: array, items: { $ref: '#/components/schemas/Result' } }
+            application/xml:
+              schema:
+                type: array
+                xml:
+                  name: "result"
+                  wrapped: true
+                items:
+                  $ref: "#/components/schemas/Result"
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <result>
+                  <entry>
+                    <entry>
+                      <entry xmlns:atom="http://www.w3.org/2005/Atom" id="1">
+                        <result>111</result>
+                        <time><![CDATA[2025-01-01 10:10:10]]></time>
+                        <user xmlns:atom="http://www.w3.org/2005/Atom" id="1508">
+                          <email>miw.etsisi@upm.es</email>
+                          <roles>
+                            <role>ROLE_ADMIN</role>
+                            <role>ROLE_USER</role>
+                          </roles>
+                          <link rel="parent" href="/api/v1/users"/>
+                          <link rel="self" href="/api/v1/users/1508"/>
+                        </user>
+                        <link rel="parent" href="/api/v1/results"/>
+                        <link rel="self" href="/api/v1/results/1"/>
+                      </entry>
+                    </entry>
+                  </entry>
+                </result>
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '304':
+          $ref: '#/components/responses/304_NotModified_Response'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    options:
+      tags: [ '🔢 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options_sorting
+      parameters:
+        - $ref: '#/components/parameters/formatParam'
+        - $ref: '#/components/parameters/sortResultParam'
+        - $ref: '#/components/parameters/orderParam'
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  /results/{resultId}:
+    get:
+      summary: "Retrieve a single Result by its ID."
+      description: |
+        - Returns the requested Result if the user has permission (ROLE_ADMIN can see any; ROLE_USER can only see their own).
+        - Includes ETag for cache/conditional requests (304 Not Modified).
+      operationId: "api_results_get"
+      tags:
+        - "🔢 Results"
+      security:
+        - MiWApiSecurity: []
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+      responses:
+        "200":
+          description: "OK - Returns the requested Result."
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Result"
+        "304":
+          $ref: "#/components/responses/304_NotModified_Response_json"
+        "401":
+          $ref: "#/components/responses/401_Unauthorized_Response_json"
+        "403":
+          $ref: "#/components/responses/403_Forbidden_NotOwn_Response_json"
+        "404":
+          $ref: "#/components/responses/404_Resource_Not_Found_Response_json"
+    put:
+      tags: [ '🔢 Results' ]
+      summary: Updates the Result resource.
+      description: 'Updates the result identified by `resultId`.'
+      operationId: api_results_put
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/ifMatchParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBodyPut'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response_json'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response_json'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_Put_Result_json'
+        '412':
+          $ref: '#/components/responses/412_Precondition_Failed_Response_json'
+        '422':
+          $ref: '#/components/responses/422_UnprocessableEntity_Response_Result_json'
+    delete:
+      tags: [ '🔢 Results' ]
+      summary: Removes the Result resource.
+      description: 'Deletes the result identified by `resultId`.'
+      operationId: api_results_delete
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '204':
+          description: 'Result deleted &lt;Response body is empty&gt;'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response_json'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response_json'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_json'
+    options:
+      tags: [ '🔢 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options_id
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  /results/{resultId}.{format}:
+    get:
+      summary: "Retrieve a single Result by its ID with format especified ouput."
+      description: |
+        - Returns the requested Result if the user has permission (ROLE_ADMIN can see any; ROLE_USER can only see their own).
+        - Output can be in JSON or XML format.
+        - Includes ETag for cache/conditional requests (304 Not Modified).
+      operationId: "api_results_get_format"
+      tags:
+        - "🔢 Results"
+      security:
+        - MiWApiSecurity: []
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/formatParam'
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+      responses:
+        "200":
+          description: "OK - Returns the requested Result."
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Result"
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Result'
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <result>
+                  <entry xmlns:atom="http://www.w3.org/2005/Atom" id="1">
+                    <result>111</result>
+                    <time><![CDATA[2025-01-01 10:10:10]]</time>
+                    <user xmlns:atom="http://www.w3.org/2005/Atom" id="1508">
+                      <email>miw.etsisi@upm.es</email>
+                      <roles>
+                        <role>ROLE_USER</role>
+                        <role>ROLE_ADMIN</role>
+                      </roles>
+                      <link rel="parent" href="/api/v1/users"/>
+                      <link rel="self" href="/api/v1/users/1508"/>
+                    </user>
+                    <link rel="parent" href="/api/v1/results"/>
+                    <link rel="self" href="/api/v1/results/1"/>
+                  </entry>
+                </result>
+        "304":
+          $ref: "#/components/responses/304_NotModified_Response"
+        "401":
+          $ref: "#/components/responses/401_Unauthorized_Response"
+        "403":
+          $ref: "#/components/responses/403_Forbidden_NotOwn_Response"
+        "404":
+          $ref: "#/components/responses/404_Resource_Not_Found_Response"
+    put:
+      tags: [ '🔢 Results' ]
+      summary: Updates the Result resource with format.
+      description: 'Updates the result identified by `resultId`.Output can be in JSON or XML format.'
+      operationId: api_results_put_format
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/formatParam'
+        - $ref: '#/components/parameters/ifMatchParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBodyPut'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Result'
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <result>
+                  <entry xmlns:atom="http://www.w3.org/2005/Atom" id="1">          
+                    <result>111</result>                        
+                    <time><![CDATA[2023-12-12 10:10:10]]</time>                    
+                    <user xmlns:atom="http://www.w3.org/2005/Atom" id="1508">
+                      <email>miw.etsisi@upm.es</email>
+                      <roles>
+                        <role>ROLE_USER</role>
+                        <role>ROLE_ADMIN</role>
+                      </roles>                    
+                      <link rel="parent" href="/api/v1/users"/>
+                      <link rel="self" href="/api/v1/users/1508"/>
+                    </user>                    
+                    <link rel="parent" href="/api/v1/results"/>
+                    <link rel="self" href="/api/v1/results/1"/>
+                  </entry>
+                </result>
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response_Put_Result'
+        '412':
+          $ref: '#/components/responses/412_Precondition_Failed_Response'
+        '422':
+          $ref: '#/components/responses/422_UnprocessableEntity_Response_Result'
+    delete:
+      tags: [  '🔢 Results' ]
+      summary: Removes the Result resource with format.
+      description: 'Deletes the result identified by `resultId`. Output can be in JSON or XML format..'
+      operationId: api_results_delete_format
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/formatParam'
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '204':
+          description: 'Result deleted &lt;Response body is empty&gt;'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_NotOwn_Response_json'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    options:
+      tags: [ '🔢 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options_id_format
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/formatParam'
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
 components:
   headers:
     ETag:
@@ -242,7 +679,6 @@ components:
     Allow:
       description: List of HTTP supported methods
       schema: { type: string }
-
   schemas:
     User:
       type: object
@@ -279,6 +715,53 @@ components:
               href: /api/v1/users
             self:
               href: /api/v1/users/1508
+    Result:
+      type: object
+      properties:
+        id:
+          description: 'Result Id'
+          type: integer
+          format: int64
+        result:
+          description: 'Result value'
+          type: integer
+          format: int64
+        time:
+          description: 'Result date in Y-m-d H:i:s format'
+          type: string
+          format: 'Y-m-d H:i:s'
+        user:
+          description: 'User who has scored'
+          $ref: '#/components/schemas/User'
+        _links:
+          description: link relations
+          type: object
+          properties:
+            parent:
+              type: object
+              properties: {"href": { "type": "string", "format": "url" }}
+            self:
+              type: object
+              properties: {"href": { "type": "string", "format": "url" }}
+      example:
+        result:
+          id: 1
+          result: 111
+          user:
+            id: 1508
+            email: 'miw.etsisi@upm.es'
+            roles: [ 'ROLE_USER','ROLE_ADMIN' ]
+            _links:
+              parent:
+                href: /api/v1/users
+              self:
+                href: /api/v1/users/1508
+          time: '2025-01-01 10:10:10'
+          _links:
+            parent:
+              href: /api/v1/results
+            self:
+              href: /api/v1/results/1
     Message:
       type: object
       description: HTTP response message
@@ -293,8 +776,31 @@ components:
       example:
         code: 200
         message: Ok
-
   responses:
+    304_NotModified_Response:
+      description: "`NOT MODIFIED`"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-304:
+              $ref: '#/components/examples/response-304'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-304:
+              $ref: '#/components/examples/response-304'
+    304_NotModified_Response_json:
+      description: "`NOT MODIFIED`"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-304:
+              $ref: '#/components/examples/response-304'
     400_BadRequest_Response:
       description: "`BAD REQUEST`: e-mail already exists"
       content:
@@ -304,7 +810,28 @@ components:
           examples:
             response-400:
               $ref: '#/components/examples/response-400'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-400:
+              $ref: '#/components/examples/response-400'
     401_Unauthorized_Response:
+      description: '`Unauthorized`: invalid Authorization header'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-401:
+              $ref: '#/components/examples/response-401'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-401:
+              $ref: '#/components/examples/response-401'
+    401_Unauthorized_Response_json:
       description: '`Unauthorized`: invalid Authorization header'
       content:
         application/json:
@@ -322,7 +849,154 @@ components:
           examples:
             response-403:
               $ref: '#/components/examples/response-403'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-403:
+              $ref: '#/components/examples/response-403'
+    403_Forbidden_NotOwn_Response:
+      description: '`Forbidden`: The user does not own this Result or lacks permissions.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-403:
+              $ref: '#/components/examples/response-403'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-403:
+              $ref: '#/components/examples/response-403'
+    403_Forbidden_NotOwn_Response_json:
+      description: '`Forbidden`: The user does not own this Result or lacks permissions.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-403:
+              $ref: '#/components/examples/response-403'
+    404_Resource_Not_Found_Response_Results:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-results'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-results'
+    404_Resource_Not_Found_Response_Results_json:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-results'
+    404_Resource_Not_Found_Response_Post_Result:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-user'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-user'
+    404_Resource_Not_Found_Response_Post_Result_json:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-user'
+    404_Resource_Not_Found_Response_Put_Result:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404-result:
+              $ref: '#/components/examples/response-404-result'
+            response-404-user:
+              $ref: '#/components/examples/response-404-user'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404-result:
+              $ref: '#/components/examples/response-404-result'
+            response-404-user:
+              $ref: '#/components/examples/response-404-user'
+    404_Resource_Not_Found_Response_Put_Result_json:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404-result:
+              $ref: '#/components/examples/response-404-result'
+            response-404-user:
+              $ref: '#/components/examples/response-404-user'
+    404_Resource_Not_Found_Response_Result:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-result'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-result'
+    404_Resource_Not_Found_Response_Result_json:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404-result'
     404_Resource_Not_Found_Response:
+      description: '`Not found`: resource not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-404:
+              $ref: '#/components/examples/response-404'
+    404_Resource_Not_Found_Response_json:
       description: '`Not found`: resource not found'
       content:
         application/json:
@@ -340,6 +1014,21 @@ components:
           examples:
             response-412:
               $ref: '#/components/examples/response-412'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-412:
+              $ref: '#/components/examples/response-412'
+    412_Precondition_Failed_Response_json:
+      description: '`PRECONDITION FAILED`: one or more conditions given evaluated to false'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-412:
+              $ref: '#/components/examples/response-412'
     422_UnprocessableEntity_Response:
       description: "`UNPROCESSABLE ENTITY`: e-mail or password is left out"
       content:
@@ -349,7 +1038,36 @@ components:
           examples:
             response-422:
               $ref: '#/components/examples/response-422'
-
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-422:
+              $ref: '#/components/examples/response-422'
+    422_UnprocessableEntity_Response_Result_json:
+      description: "`UNPROCESSABLE ENTITY`: Some request field does not have the correct format or some fields are left out"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-422:
+              $ref: '#/components/examples/response-422-result'
+    422_UnprocessableEntity_Response_Result:
+      description: "`UNPROCESSABLE ENTITY`: Some request field does not have the correct format or some fields are left out"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-422:
+              $ref: '#/components/examples/response-422-result'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-422:
+              $ref: '#/components/examples/response-422-result'
   requestBodies:
     UserRequestBody:
       description: '`User` data'
@@ -376,6 +1094,83 @@ components:
                 email: User_email@example.com
                 password: User_password
                 roles: [ 'ROLE_USER', 'ROLE_ADMIN' ]
+
+    ResultRequestBodyPost:
+      description: "Request body for creating a new Result"
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                description: "Result score"
+                required: true
+                type: integer
+                format: int64
+                minimum: 0        # Must be >= 0
+                example: 1
+              time:
+                description: "Optional time for the Result. If not provided, server uses current time"
+                type: string
+                format: "date-time"  # or a custom format note
+                example: "2024-12-31 23:10:10"
+              user:
+                description: "Email of the user who owns this Result (only for ROLE_ADMIN or same user). If not provided, server uses the logged user.It is not case sensitive"
+                type: string
+                format: email
+                example: "User_email@example.com"
+          examples:
+            createResultExample:
+              summary: "Example of minimal body for POST"
+              value:
+                result: 10
+            createResultWithTimeAndUser:
+              summary: "Example with optional time and user"
+              value:
+                result: 42
+                time: "2025-01-01 12:00:00"
+                user: "admin@miw.upm.es"
+
+    ResultRequestBodyPut:
+      description: "Request body for updating an existing Result"
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                description: "Result score (required, integer >= 0)"
+                required: true
+                type: integer
+                format: int64
+                minimum: 0
+                example: 10
+              time:
+                description: "Optional time. Must follow 'YYYY-MM-DD HH:MM:SS' or similar. If omitted, no change"
+                type: string
+                format: "date-time"
+                example: "2025-01-01 15:30:00"
+              user:
+                description: "Email of the user who owns this Result. Only ROLE_ADMIN can change to a different user; ROLE_USER must use their own email (or receive 403).It is not case sensitive"
+                required: true
+                type: string
+                format: email
+                example: "User_email@example.com"
+          examples:
+            updateResultExample:
+              summary: "Minimal body for PUT"
+              value:
+                result: 20
+                user: "User_email@example.com"
+            updateResultWithTime:
+              summary: "PUT example with time"
+              value:
+                result: 55
+                time: "2026-05-10 09:15:00"
+                user: "admin@miw.upm.es"
+
     LoginRequestBody:
       description: Registered user **e-mail** and **password**
       required: true
@@ -412,6 +1207,12 @@ components:
       description: 'ID of user'
       required: true
       schema: { "type": "integer", pattern: '^\d+$' }
+    resultId:
+      name: resultId
+      in: path
+      description: 'ID of the Result (must be an integer).'
+      required: true
+      schema: { "type": "integer", pattern: '^\d+$', minimum: 1 }
     ifMatchParam:
       name: If-Match
       in: header
@@ -420,12 +1221,54 @@ components:
       schema:
         type: string
         pattern: "[0-9a-f]*"
-
+    ifNoneMatchParam:
+      name: If-None-Match
+      in: header
+      description: "ETag value of the resource you are checking if it has been modified"
+      required: false
+      schema:
+        type: string
+        pattern: "[0-9a-f]*"
+    formatParam:
+      name: format
+      in: path
+      description: "Response format (json or xml)."
+      required: true
+      schema:
+        type: string
+        enum: ["json", "xml"]
+        default: "json"
+    orderParam:
+      name: order
+      in: path
+      description: "Sorting direction (asc or desc)."
+      required: true
+      schema:
+        type: string
+        enum: ["asc", "desc"]
+        default: "asc"
+    sortResultParam:
+      name: sort
+      in: path
+      description: "Field to sort by (id, time, or result)."
+      required: true
+      schema:
+        type: string
+        enum: ["id", "time", "result"]
+        default: "id"
   examples:
+    response-304:
+      value:
+        code: 304
+        message: 'NOT MODIFIED'
     response-400:
       value:
         code: 400
         message: 'BAD REQUEST: e-mail already exists'
+    response-400-result:
+      value:
+        code: 400
+        message: 'BAD REQUEST: some field are invalids'
     response-401:
       value:
         code: 401
@@ -438,6 +1281,18 @@ components:
       value:
         code: 404
         message: 'NOT FOUND: Resource not found'
+    response-404-results:
+      value:
+        code: 404
+        message: 'NOT FOUND: Results not found'
+    response-404-user:
+      value:
+        code: 404
+        message: 'NOT FOUND: User User_email@example.com not found in db'
+    response-404-result:
+      value:
+        code: 404
+        message: 'NOT FOUND: Result with id 1 not found'
     response-412:
       value:
         code: 412
@@ -445,7 +1300,11 @@ components:
     response-422:
       value:
         code: 422
-        message: 'UNPROCESSABLE ENTITY: e-mail or password is left out'
+        message: 'UNPROCESSABLE ENTITY: some fields are left out'
+    response-422-result:
+      value:
+        code: 422
+        message: 'UNPROCESSABLE ENTITY: Some request field does not have the correct format or some fields are left out'
 
   securitySchemes:
     MiWApiSecurity:

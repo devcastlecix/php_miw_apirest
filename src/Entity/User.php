@@ -3,26 +3,25 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-// use Hateoas\Configuration\Annotation as Hateoas;
 use JetBrains\PhpStorm\ArrayShape;
 use JMS\Serializer\Annotation as Serializer;
 use JsonSerializable;
 use Lexik\Bundle\JWTAuthenticationBundle\Security\User\JWTUserInterface;
 use Symfony\Component\Security\Core\User\{PasswordAuthenticatedUserInterface, UserInterface};
+use Hateoas\Configuration\Annotation as Hateoas;
 
+#[Hateoas\Relation(
+    name: "parent",
+    href: "expr(constant('App\\\\Controller\\\\ApiUsersQueryInterface::RUTA_API'))"
+)]
+#[Hateoas\Relation(
+    name: "self",
+    href: "expr(constant('App\\\\Controller\\\\ApiUsersQueryInterface::RUTA_API') ~ '/' ~ object.getId())"
+)]
 #[ORM\Entity, ORM\Table(name: 'users')]
 #[ORM\UniqueConstraint(name: 'IDX_UNIQ_EMAIL', columns: [ 'email' ])]
 #[Serializer\XmlNamespace(uri: 'http://www.w3.org/2005/Atom', prefix: 'atom')]
 #[Serializer\AccessorOrder(order: 'custom', custom: [ 'id', 'email', 'roles', '_links' ]) ]
-/* #[ Hateoas\Relation(
-    name: 'parent',
-    href: "expr(constant('\\App\\Controller\\ApiUsersQueryController::RUTA_API'))"
-)]
-#[Hateoas\Relation(
-    name: 'self',
-    href: "expr(constant('\\App\\Controller\\ApiUsersQueryController::RUTA_API') ~ '/' ~ object.getId())"
-)] */
-
 class User implements UserInterface, PasswordAuthenticatedUserInterface, JsonSerializable, JWTUserInterface
 {
     public final const USER_ATTR = 'user';
