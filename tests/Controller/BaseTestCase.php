@@ -31,6 +31,9 @@ class BaseTestCase extends WebTestCase
     /** @var array<string,mixed> $role_user Role User */
     protected static array $role_user;
 
+    /** @var array<string,mixed> $role_user2  Role User auxiliar */
+    protected static array $role_user2;
+
     /** @var array<string,mixed> $role_admin Role Admin */
     protected static array $role_admin;
 
@@ -50,6 +53,12 @@ class BaseTestCase extends WebTestCase
         self::$role_user = [
             User::EMAIL_ATTR => $_ENV['ROLE_USER_EMAIL'],
             User::PASSWD_ATTR => $_ENV['ROLE_USER_PASSWD'],
+        ];
+
+        // Role user2
+        self::$role_user2 = [
+            User::EMAIL_ATTR => $_ENV['ROLE_USER2_EMAIL'],
+            User::PASSWD_ATTR => $_ENV['ROLE_USER2_PASSWD']
         ];
 
         // Role admin
@@ -104,8 +113,20 @@ class BaseTestCase extends WebTestCase
         );
         $role_user->setPassword($hashedPassword);
 
+        $role_user2 = new User(
+            self::$role_user2[User::EMAIL_ATTR],
+            self::$role_user2[User::PASSWD_ATTR]
+        );
+        // hash the password (based on the security.yaml config for the $user class)
+        $hashedPassword = $passwordHasher->hashPassword(
+            $role_user,
+            self::$role_user2[User::PASSWD_ATTR]
+        );
+        $role_user2->setPassword($hashedPassword);
+
         $e_manager->persist($role_admin);
         $e_manager->persist($role_user);
+        $e_manager->persist($role_user2);
         $e_manager->flush();
     }
 
@@ -149,8 +170,21 @@ class BaseTestCase extends WebTestCase
      *
      * @param Response $response
      * @param int $errorCode
+     * @param string|null $format
      */
-    protected function checkResponseErrorMessage(Response $response, int $errorCode): void
+    protected function checkResponseErrorMessage(Response $response, int $errorCode, ?string $format='json'): void
+    {
+       if ($format === 'xml') $this->checkResponseErrorMessageXml($response, $errorCode);
+       else $this->checkResponseErrorMessageJson($response, $errorCode);
+    }
+
+    /**
+     * Test response error messages for format json
+     *
+     * @param Response $response
+     * @param int $errorCode
+     */
+    protected function checkResponseErrorMessageJson(Response $response, int $errorCode): void
     {
         self::assertSame($errorCode, $response->getStatusCode());
         $r_body = (string) $response->getContent();
@@ -164,6 +198,31 @@ class BaseTestCase extends WebTestCase
             //    strtolower(Response::$statusTexts[$errorCode]),
             //    strtolower($r_data[Message::MESSAGE_ATTR])
             // );
+        } catch (Throwable $exception) {
+            die('ERROR: ' . $exception->getMessage());
+        }
+    }
+
+    /**
+     * Test response error messages for format xml
+     *
+     * @param Response $response
+     * @param int $errorCode
+     */
+    protected function checkResponseErrorMessageXml(Response $response, int $errorCode): void
+    {
+        self::assertSame($errorCode, $response->getStatusCode());
+        $r_body = (string) $response->getContent();
+
+        try {
+            $xml = new \SimpleXMLElement($r_body);
+            self::assertTrue($response->headers->contains('content-type', 'application/xml'));
+
+            self::assertNotNull($xml->code, 'La respuesta XML no contiene la etiqueta <code>');
+            self::assertSame($errorCode, (int) $xml->code);
+
+            self::assertNotNull($xml->message, 'La respuesta XML no contiene la etiqueta <message>');
+            self::assertNotEmpty((string) $xml->message);
         } catch (Throwable $exception) {
             die('ERROR: ' . $exception->getMessage());
         }
