@@ -62,7 +62,6 @@ class ApiResultsQueryController extends AbstractController implements ApiResults
             ? $this->resultRepository->findAllSorted($sort, $order)
             : $this->resultRepository->findByUserSorted($this->getUser(), $sort, $order);
 
-        // @codeCoverageIgnoreStart
         if (empty($results)) {
             return Utils::buildResponseNotFound($format);
         }

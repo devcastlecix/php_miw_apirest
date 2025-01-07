@@ -31,6 +31,13 @@ interface ApiUsersQueryInterface
     public function getAction(Request $request, int $userId): Response;
 
     /**
+     * **CGET** Action<br>
+     * Summary: Retrieves the collection of Results resources.<br>
+     * _Notes_: Returns all results from user specified with user id.
+     */
+    public function cgetActionResults(Request $request, int $userId): Response;
+
+    /**
      * **OPTIONS** Action<br>
      * Summary: Provides the list of HTTP supported methods<br>
      * _Notes_: Return a <code>Allow</code> header with a list of HTTP supported methods.
@@ -38,4 +45,13 @@ interface ApiUsersQueryInterface
      * @param  int|null $userId User id
      */
     public function optionsAction(?int $userId): Response;
+
+    /**
+     * **OPTIONS** Action<br>
+     * Summary: Provides the list of HTTP supported methods<br>
+     * _Notes_: Return a <code>Allow</code> header with a list of HTTP supported methods.
+     *
+     * @param  int $userId User id
+     */
+    public function optionsActionResults(int $userId): Response;
 }

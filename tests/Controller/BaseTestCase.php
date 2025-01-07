@@ -2,7 +2,7 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\{ Message, User };
+use App\Entity\{Message, Result, User};
 use Doctrine\ORM\{ EntityManagerInterface, Tools\SchemaTool };
 use Faker\Factory as FakerFactoryAlias;
 use Faker\Generator as FakerGeneratorAlias;
@@ -53,6 +53,7 @@ class BaseTestCase extends WebTestCase
         self::$role_user = [
             User::EMAIL_ATTR => $_ENV['ROLE_USER_EMAIL'],
             User::PASSWD_ATTR => $_ENV['ROLE_USER_PASSWD'],
+            "id" => 0
         ];
 
         // Role user2
@@ -127,6 +128,14 @@ class BaseTestCase extends WebTestCase
         $e_manager->persist($role_admin);
         $e_manager->persist($role_user);
         $e_manager->persist($role_user2);
+        $e_manager->flush();
+        $user = $e_manager-> getRepository(User::class) ->findOneBy(['email'=> $role_user->getUserIdentifier()]);
+        self::$role_user["id"] = $user->getId();
+
+        $result1 =new Result(1,new \DateTime('now'),$role_admin);
+        $result2 =new Result(2,new \DateTime('now'),$role_user);
+        $e_manager->persist($result1);
+        $e_manager->persist($result2);
         $e_manager->flush();
     }
 

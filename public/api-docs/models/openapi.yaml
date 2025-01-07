@@ -232,6 +232,88 @@ paths:
           headers:
             Allow:
               $ref: '#/components/headers/Allow'
+  /users/{userId}/results/{sort}:
+    get:
+      tags:
+        - '👥 Users'
+      summary: "Retrieve a formatted and sorted collection of results from a specific user."
+      description: |
+        - All results based on a userId
+        - only the user ROL_ADMIN is allowed
+        - Allows sorting by `id`, `time`, or `result` in ascending (`asc`) order.        
+        - Includes an ETag header for cache/conditional requests (304 Not Modified).
+      operationId: api_users_cget_results
+      security:
+        - MiWApiSecurity: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+        - $ref: '#/components/parameters/sortResultParam'
+
+      responses:
+        '200':
+          description: 'OK - Returns an array of Results.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results array', type: array, items: { $ref: '#/components/schemas/Result' } }
+            application/xml:
+              schema:
+                type: array
+                xml:
+                  name: "result"
+                  wrapped: true
+                items:
+                  $ref: "#/components/schemas/Result"
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <result>
+                  <entry>
+                    <entry>
+                      <entry xmlns:atom="http://www.w3.org/2005/Atom" id="1">
+                        <result>111</result>
+                        <time><![CDATA[2025-01-01 10:10:10]]></time>
+                        <user xmlns:atom="http://www.w3.org/2005/Atom" id="1508">
+                          <email>miw.etsisi@upm.es</email>
+                          <roles>
+                            <role>ROLE_ADMIN</role>
+                            <role>ROLE_USER</role>
+                          </roles>
+                          <link rel="parent" href="/api/v1/users"/>
+                          <link rel="self" href="/api/v1/users/1508"/>
+                        </user>
+                        <link rel="parent" href="/api/v1/results"/>
+                        <link rel="self" href="/api/v1/results/1"/>
+                      </entry>
+                    </entry>
+                  </entry>
+                </result>
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '304':
+          $ref: '#/components/responses/304_NotModified_Response'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    options:
+      tags: [ '👥 Users' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_users_results_options_sorting
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/ifNoneMatchParam'
+        - $ref: '#/components/parameters/sortResultParam'
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
   /results:
     get:
       tags:

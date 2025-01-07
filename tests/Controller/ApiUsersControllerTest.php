@@ -190,6 +190,7 @@ class ApiUsersControllerTest extends BaseTestCase
         self::assertTrue($response->headers->contains('content-type', 'application/xml'));
     }
 
+
     /**
      * Test GET /users/{userId} 200 Ok
      *
@@ -218,6 +219,24 @@ class ApiUsersControllerTest extends BaseTestCase
         return (string) $response->getEtag();
     }
 
+    /**
+     * Test GET /users 200 Ok
+     * @depends testPostUserAction201Created
+     * @return  void
+     */
+    public function testCGetUserAction200OkResults(): void
+    {
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API . '/' . self::$role_user["id"] . '/results/id',
+            [],
+            [],
+            self::$adminHeaders
+        );
+        $response = self::$client->getResponse();
+        self::assertTrue($response->isSuccessful(), strval($response->getContent()));
+        self::assertNotNull($response->getEtag());
+    }
     /**
      * Test GET /users/{userId} 304 NOT MODIFIED
      *
